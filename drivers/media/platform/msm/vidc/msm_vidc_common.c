@@ -1097,6 +1097,8 @@ static void handle_fbd(enum command_response cmd, void *data)
 	struct vb2_buffer *vb = NULL;
 	struct vidc_hal_fbd *fill_buf_done;
 	enum hal_buffer buffer_type;
+	int64_t time_usec = 0;
+	int extra_idx = 0;
 
 	if (!response) {
 		dprintk(VIDC_ERR, "Invalid response from vidc_hal\n");
@@ -1143,6 +1145,15 @@ static void handle_fbd(enum command_response cmd, void *data)
 				ns_to_timeval(time_usec * NSEC_PER_USEC);
 		}
 		vb->v4l2_buf.flags = 0;
+		extra_idx =
+			EXTRADATA_IDX(inst->fmts[CAPTURE_PORT]->num_planes);
+		if (extra_idx && (extra_idx < VIDEO_MAX_PLANES)) {
+			vb->v4l2_planes[extra_idx].m.userptr =
+				(unsigned long)fill_buf_done->extra_data_buffer;
+			vb->v4l2_planes[extra_idx].bytesused =
+				vb->v4l2_planes[extra_idx].length;
+			vb->v4l2_planes[extra_idx].data_offset = 0;
+		}
 
 		handle_dynamic_buffer(inst, (u32)fill_buf_done->packet_buffer1,
 					fill_buf_done->flags1);
@@ -1189,10 +1200,21 @@ static void handle_fbd(enum command_response cmd, void *data)
 			msm_vidc_debugfs_update(inst,
 				MSM_VIDC_DEBUGFS_EVENT_FBD);
 
-		dprintk(VIDC_DBG, "Filled length = %d; offset = %d; flags %x\n",
-				vb->v4l2_planes[0].bytesused,
-				vb->v4l2_planes[0].data_offset,
-				vb->v4l2_buf.flags);
+		dprintk(VIDC_DBG,
+		"Got fbd from hal: device_addr: 0x%x, alloc: %d, filled: %d, offset: %d, ts: %lld, flags: 0x%x, crop: %d %d %d %d, pic_type: 0x%x\n",
+		(u32)fill_buf_done->packet_buffer1, fill_buf_done->alloc_len1,
+		fill_buf_done->filled_len1, fill_buf_done->offset1, time_usec,
+		fill_buf_done->flags1, fill_buf_done->start_x_coord,
+		fill_buf_done->start_y_coord, fill_buf_done->frame_width,
+		fill_buf_done->frame_height, fill_buf_done->picture_type);
+
+		if (extra_idx && (extra_idx < VIDEO_MAX_PLANES)) {
+			dprintk(VIDC_DBG,
+			"extradata: userptr = %p;  bytesused = %d; length = %d\n",
+			(u8 *)vb->v4l2_planes[extra_idx].m.userptr,
+			vb->v4l2_planes[extra_idx].bytesused,
+			vb->v4l2_planes[extra_idx].length);
+		}
 		mutex_lock(&inst->bufq[CAPTURE_PORT].lock);
 		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
 		mutex_unlock(&inst->bufq[CAPTURE_PORT].lock);
