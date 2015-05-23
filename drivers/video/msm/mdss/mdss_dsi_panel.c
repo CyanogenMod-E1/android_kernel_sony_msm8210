@@ -28,8 +28,6 @@
 //tracy for 1030 display
 #define DT_CMD_HDR 6
 
-#define TRULY_LCM_BL_EN 15
-
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
@@ -598,26 +596,6 @@ static int mdss_dsi_parse_reset_seq(struct device_node *np,
 	return 0;
 }
 
-static int lm3533_backlight_control(struct mdss_dsi_ctrl_pdata *ctrl, int bl_level)
-{
-	int i = 0;
-	int set_bl; 
-	  set_bl = abs(ctrl->panel_data.panel_info.bl_max-bl_level)+1;
-	pr_info("[R]%s:++,bl_level %d \n", __func__,bl_level);
-	for (i=0;i<set_bl;i++)
-		{
-			gpio_set_value(TRULY_LCM_BL_EN, 1);
-			udelay(10);
-			gpio_set_value(TRULY_LCM_BL_EN, 0);
-			udelay(10);
-		}
-	if(bl_level==0)
-		gpio_set_value(TRULY_LCM_BL_EN, 0);
-	else
-		gpio_set_value(TRULY_LCM_BL_EN, 1);
-		udelay(500);
-	return 0;
-}
 
 static int mdss_panel_parse_dt(struct device_node *np,
 			struct mdss_dsi_ctrl_pdata *ctrl_pdata)
