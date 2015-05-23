@@ -161,6 +161,8 @@ extern u16 total_len;
 #define GTP_REG_FW_VERSION	0x8144
 #define GTP_REG_PRODUCT_ID	0x8140
 
+#define GTP_I2C_RETRY_5		5
+
 #define RESOLUTION_LOC		3
 #define TRIGGER_LOC		8
 
